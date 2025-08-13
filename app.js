@@ -227,21 +227,53 @@ function updateItemState(testFile) {
   }
 }
 
+
+
 /**
  * @param {FailureGroup} group
- * @param {boolean} selectAll
  */
-function toggleGroupSelection(group, selectAll) {
+function keepAllInGroup(group) {
   const testFiles = [...new Set(group.items.map(item => item.testFile).filter(Boolean))];
 
   testFiles.forEach(testFile => {
-    if (selectAll) {
-      selectedTestFiles.add(testFile);
-      // Remove from reviewed when selecting for rollback
-      reviewedTestFiles.delete(testFile);
-    } else {
-      selectedTestFiles.delete(testFile);
-    }
+    reviewedTestFiles.add(testFile);
+    // Remove from rollback when marking as keep
+    selectedTestFiles.delete(testFile);
+
+    // Update individual checkboxes and item state
+    updateItemState(testFile);
+  });
+
+  updateGlobalRollback();
+}
+
+/**
+ * @param {FailureGroup} group
+ */
+function rollbackAllInGroup(group) {
+  const testFiles = [...new Set(group.items.map(item => item.testFile).filter(Boolean))];
+
+  testFiles.forEach(testFile => {
+    selectedTestFiles.add(testFile);
+    // Remove from reviewed when selecting for rollback
+    reviewedTestFiles.delete(testFile);
+
+    // Update individual checkboxes and item state
+    updateItemState(testFile);
+  });
+
+  updateGlobalRollback();
+}
+
+/**
+ * @param {FailureGroup} group
+ */
+function deselectAllInGroup(group) {
+  const testFiles = [...new Set(group.items.map(item => item.testFile).filter(Boolean))];
+
+  testFiles.forEach(testFile => {
+    selectedTestFiles.delete(testFile);
+    reviewedTestFiles.delete(testFile);
 
     // Update individual checkboxes and item state
     updateItemState(testFile);
@@ -521,31 +553,42 @@ function renderGroups(groups) {
     const summaryEl = g.querySelector('summary');
     const testFiles = [...new Set(group.items.map(item => item.testFile).filter(Boolean))];
 
-    // Add group select all checkbox
+    // Add group action controls
     if (testFiles.length > 0) {
-      const groupSelectDiv = document.createElement('div');
-      groupSelectDiv.className = 'group-select-all';
+      const groupActionsDiv = document.createElement('div');
+      groupActionsDiv.className = 'group-actions';
 
-      const groupCheckbox = document.createElement('input');
-      groupCheckbox.type = 'checkbox';
-      groupCheckbox.className = 'group-select-checkbox';
-      groupCheckbox.addEventListener('change', (e) => {
+      // Rollback All button
+      const rollbackAllButton = document.createElement('button');
+      rollbackAllButton.className = 'group-rollback-all-button';
+      rollbackAllButton.textContent = 'Rollback All';
+      rollbackAllButton.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent toggling the details
-        toggleGroupSelection(group, groupCheckbox.checked);
+        rollbackAllInGroup(group);
       });
 
-      const groupLabel = document.createElement('label');
-      groupLabel.className = 'group-select-label';
-      groupLabel.textContent = 'Select All';
-      groupLabel.addEventListener('click', (e) => {
+      // Keep All button
+      const keepAllButton = document.createElement('button');
+      keepAllButton.className = 'group-keep-all-button';
+      keepAllButton.textContent = 'Keep All';
+      keepAllButton.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent toggling the details
-        groupCheckbox.checked = !groupCheckbox.checked;
-        toggleGroupSelection(group, groupCheckbox.checked);
+        keepAllInGroup(group);
       });
 
-      groupSelectDiv.appendChild(groupCheckbox);
-      groupSelectDiv.appendChild(groupLabel);
-      summaryEl.appendChild(groupSelectDiv);
+      // Deselect All button
+      const deselectAllButton = document.createElement('button');
+      deselectAllButton.className = 'group-deselect-all-button';
+      deselectAllButton.textContent = 'Deselect All';
+      deselectAllButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent toggling the details
+        deselectAllInGroup(group);
+      });
+
+      groupActionsDiv.appendChild(rollbackAllButton);
+      groupActionsDiv.appendChild(keepAllButton);
+      groupActionsDiv.appendChild(deselectAllButton);
+      summaryEl.appendChild(groupActionsDiv);
     }
 
 
@@ -634,7 +677,7 @@ function renderItem(item) {
     const reviewedLabel = document.createElement('label');
     reviewedLabel.htmlFor = reviewedCheckbox.id;
     reviewedLabel.className = 'reviewed-label';
-    reviewedLabel.textContent = 'Reviewed';
+    reviewedLabel.textContent = 'Keep';
 
     reviewedDiv.appendChild(reviewedCheckbox);
     reviewedDiv.appendChild(reviewedLabel);
