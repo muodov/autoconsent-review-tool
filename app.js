@@ -138,6 +138,7 @@ async function handleZipFile(file) {
   let failures = [];
   let totalTests = 0;
   let totalTime = 0;
+  let testSuiteCount = 0;
 
   for (const path of resultFiles) {
     try {
@@ -153,6 +154,7 @@ async function handleZipFile(file) {
       const stats = extractStats(doc);
       totalTests += stats.testCount;
       totalTime += stats.timeSec;
+      testSuiteCount += stats.testSuiteCount;
     } catch (e) {
       console.warn('Error reading', path, e);
     }
@@ -162,7 +164,7 @@ async function handleZipFile(file) {
   attachScreenshotsByPrefix(failures, screenshots);
 
   const groups = groupByReason(failures);
-  renderSummary({ totalTests, totalTime, fileCount: resultFiles.length }, failures, groups);
+  renderSummary({ totalTests, totalTime, testSuiteCount}, failures, groups);
   renderGroups(groups);
 }
 
@@ -244,17 +246,18 @@ function textContent(el) {
 
 /**
  * @param {XMLDocument} xmlDoc
- * @returns {{testCount: number, timeSec: number}}
+ * @returns {{testCount: number, timeSec: number, testSuiteCount: number}}
  */
 function extractStats(xmlDoc) {
   const root = xmlDoc.documentElement; // testsuites or testsuite
   let testCount = 0;
   let timeSec = 0;
+  const testSuiteCount = xmlDoc.querySelectorAll('testsuite').length;
   const testsAttr = Number(root.getAttribute('tests') || 0);
   if (testsAttr > 0) testCount = testsAttr; else testCount = xmlDoc.querySelectorAll('testcase').length;
   const timeAttr = Number(root.getAttribute('time') || 0);
   if (!Number.isNaN(timeAttr) && timeAttr > 0) timeSec = timeAttr;
-  return { testCount, timeSec };
+  return { testCount, timeSec, testSuiteCount };
 }
 
 /**
@@ -335,16 +338,26 @@ function computeReason(f) {
 }
 
 /**
- * @param {{totalTests: number, totalTime: number, fileCount: number}} stats
+ * @param {{totalTests: number, totalTime: number, testSuiteCount: number}} stats
  * @param {FailureItem[]} failures
  * @param {FailureGroup[]} groups
  */
 function renderSummary(stats, failures, groups) {
   const failed = failures.filter(isFailure).length;
-  const timeStr = stats.totalTime ? ` — Time: ${stats.totalTime.toFixed(2)}s` : '';
-  const filesStr = ` — Files: ${stats.fileCount}`;
+  let timeStr = '';
+  if (stats.totalTime) {
+    const totalSeconds = Math.floor(stats.totalTime);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
+    parts.push(`${seconds}s`);
+    timeStr = ` — Time: ${parts.join(' ')}`;
+  }
   els.summary.classList.remove('hidden');
-  els.summary.innerHTML = `Total tests: <span class="badge">${stats.totalTests}</span> — Failures: <span class="badge danger">${failed}</span> — Groups: <span class="badge">${groups.length}</span>${filesStr}${timeStr}`;
+  els.summary.innerHTML = `Test suites: <span class="badge">${stats.testSuiteCount}</span> — Total tests: <span class="badge">${stats.totalTests}</span> — Failures: <span class="badge danger">${failed}</span> — Groups: <span class="badge">${groups.length}</span>${timeStr}`;
 }
 
 /**
