@@ -228,7 +228,7 @@ body {
 .group-rollback-all-button,
 .group-keep-all-button,
 .group-deselect-all-button {
-  padding: 6px 12px;
+  padding: 6px 8px;
   border: none;
   border-radius: 6px;
   font-size: 11px;
@@ -236,6 +236,9 @@ body {
   cursor: pointer;
   transition: background-color 0.2s ease;
   user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Group Rollback All Button */
@@ -263,6 +266,27 @@ body {
 }
 .group-deselect-all-button:hover {
   background: #8a94a6;
+}
+
+/* Group Button Checkboxes */
+.group-rollback-checkbox,
+.group-keep-checkbox,
+.group-deselect-checkbox {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  pointer-events: none; /* Prevent checkbox from interfering with button clicks */
+}
+
+.group-rollback-checkbox {
+  accent-color: white;
+}
+.group-keep-checkbox {
+  accent-color: white;
+}
+.group-deselect-checkbox {
+  accent-color: white;
 }
 
 

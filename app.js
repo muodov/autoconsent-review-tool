@@ -225,6 +225,71 @@ function updateItemState(testFile) {
     itemElement.classList.toggle('reviewed', isReviewed);
     itemElement.classList.toggle('rollback', isSelected);
   }
+
+  // Update group button states
+  updateAllGroupButtonStates();
+}
+
+/**
+ * Update all group button states based on current selections
+ */
+function updateAllGroupButtonStates() {
+  // Find all groups and update their button states
+  const groupElements = document.querySelectorAll('.group');
+  groupElements.forEach(groupElement => {
+    const groupReason = groupElement.querySelector('.reason')?.textContent;
+    if (groupReason) {
+      updateGroupButtonStates(groupElement);
+    }
+  });
+}
+
+/**
+ * @param {Element} groupElement
+ */
+function updateGroupButtonStates(groupElement) {
+  // Find all test files in this group by looking at item checkboxes
+  const itemElements = groupElement.querySelectorAll('.item');
+  const itemCheckboxes = Array.from(itemElements)
+    .map(item => ({
+      rollback: /** @type {HTMLInputElement} */ (item.querySelector('.rollback-check')),
+      reviewed: /** @type {HTMLInputElement} */ (item.querySelector('.reviewed-check'))
+    }))
+    .filter(item => item.rollback || item.reviewed);
+
+  if (itemCheckboxes.length === 0) return;
+
+  // Count states
+  let rollbackCount = 0;
+  let reviewedCount = 0;
+
+  itemCheckboxes.forEach(item => {
+    if (item.rollback?.checked) rollbackCount++;
+    if (item.reviewed?.checked) reviewedCount++;
+  });
+
+  // Update button checkboxes
+  const rollbackCheckbox = groupElement.querySelector('.group-rollback-checkbox');
+  const keepCheckbox = groupElement.querySelector('.group-keep-checkbox');
+  const deselectCheckbox = groupElement.querySelector('.group-deselect-checkbox');
+
+  const totalCount = itemCheckboxes.length;
+  const unprocessedCount = totalCount - rollbackCount - reviewedCount;
+
+  if (rollbackCheckbox) {
+    rollbackCheckbox.checked = rollbackCount === totalCount;
+    rollbackCheckbox.indeterminate = rollbackCount > 0 && rollbackCount < totalCount;
+  }
+
+  if (keepCheckbox) {
+    keepCheckbox.checked = reviewedCount === totalCount;
+    keepCheckbox.indeterminate = reviewedCount > 0 && reviewedCount < totalCount;
+  }
+
+  if (deselectCheckbox) {
+    deselectCheckbox.checked = unprocessedCount === totalCount;
+    deselectCheckbox.indeterminate = unprocessedCount > 0 && unprocessedCount < totalCount;
+  }
 }
 
 
@@ -558,32 +623,62 @@ function renderGroups(groups) {
       const groupActionsDiv = document.createElement('div');
       groupActionsDiv.className = 'group-actions';
 
-      // Rollback All button
+      // Rollback All button with checkbox
       const rollbackAllButton = document.createElement('button');
       rollbackAllButton.className = 'group-rollback-all-button';
-      rollbackAllButton.textContent = 'Rollback All';
       rollbackAllButton.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent toggling the details
         rollbackAllInGroup(group);
       });
 
-      // Keep All button
+      const rollbackCheckbox = document.createElement('input');
+      rollbackCheckbox.type = 'checkbox';
+      rollbackCheckbox.className = 'group-rollback-checkbox';
+      rollbackCheckbox.addEventListener('click', (e) => e.stopPropagation());
+
+      const rollbackLabel = document.createElement('span');
+      rollbackLabel.textContent = 'Rollback All';
+
+      rollbackAllButton.appendChild(rollbackCheckbox);
+      rollbackAllButton.appendChild(rollbackLabel);
+
+      // Keep All button with checkbox
       const keepAllButton = document.createElement('button');
       keepAllButton.className = 'group-keep-all-button';
-      keepAllButton.textContent = 'Keep All';
       keepAllButton.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent toggling the details
         keepAllInGroup(group);
       });
 
-      // Deselect All button
+      const keepCheckbox = document.createElement('input');
+      keepCheckbox.type = 'checkbox';
+      keepCheckbox.className = 'group-keep-checkbox';
+      keepCheckbox.addEventListener('click', (e) => e.stopPropagation());
+
+      const keepLabel = document.createElement('span');
+      keepLabel.textContent = 'Keep All';
+
+      keepAllButton.appendChild(keepCheckbox);
+      keepAllButton.appendChild(keepLabel);
+
+      // Deselect All button with checkbox
       const deselectAllButton = document.createElement('button');
       deselectAllButton.className = 'group-deselect-all-button';
-      deselectAllButton.textContent = 'Deselect All';
       deselectAllButton.addEventListener('click', (e) => {
         e.stopPropagation(); // Prevent toggling the details
         deselectAllInGroup(group);
       });
+
+      const deselectCheckbox = document.createElement('input');
+      deselectCheckbox.type = 'checkbox';
+      deselectCheckbox.className = 'group-deselect-checkbox';
+      deselectCheckbox.addEventListener('click', (e) => e.stopPropagation());
+
+      const deselectLabel = document.createElement('span');
+      deselectLabel.textContent = 'Deselect All';
+
+      deselectAllButton.appendChild(deselectCheckbox);
+      deselectAllButton.appendChild(deselectLabel);
 
       groupActionsDiv.appendChild(rollbackAllButton);
       groupActionsDiv.appendChild(keepAllButton);
