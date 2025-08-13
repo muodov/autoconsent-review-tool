@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CI Failure Reviewer</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>CI Failure Reviewer</h1>
+      <p>Upload a Jenkins artifacts zip with files under <code>archive/</code>: <code>archive/results.xml</code> and <code>archive/test-results/screenshots/</code> with <code>.jpg</code> named <code>&lt;testName&gt;-&lt;suffix&gt;.jpg</code>.</p>
+    </header>
+
+    <section class="uploader">
+      <label for="zipInput" class="button">Choose ZIP</label>
+      <input id="zipInput" type="file" accept=".zip,application/zip" />
+
+      <div id="dropzone" class="dropzone" tabindex="0" aria-label="Drop zip file here">
+        <span>Or drop ZIP here</span>
+      </div>
+    </section>
+
+    <section id="summary" class="summary hidden"></section>
+    <section id="results" class="results"></section>
+
+    <!-- Screenshot zoom modal -->
+    <div id="screenshot-modal" class="screenshot-modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <button class="modal-close" aria-label="Close">&times;</button>
+        <img class="modal-image" alt="Zoomed screenshot">
+        <div class="modal-caption"></div>
+      </div>
+    </div>
+
+    <template id="group-template">
+      <details class="group">
+        <summary>
+          <span class="reason"></span>
+          <span class="count"></span>
+        </summary>
+        <div class="items"></div>
+      </details>
+    </template>
+
+    <template id="item-template">
+      <article class="item">
+        <div class="item-header">
+          <div class="test-name"></div>
+          <div class="meta"></div>
+        </div>
+        <div class="failure-stats"></div>
+        <div class="screenshots"></div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+  </html>
+
+
