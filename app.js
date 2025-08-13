@@ -48,40 +48,51 @@ const els = {
   modalCaption: /** @type {HTMLElement} */ (document.querySelector('.modal-caption')),
   modalClose: /** @type {HTMLElement} */ (document.querySelector('.modal-close')),
   modalBackdrop: /** @type {HTMLElement} */ (document.querySelector('.modal-backdrop')),
+  globalRollback: /** @type {HTMLElement} */ (document.getElementById('global-rollback')),
+  selectionCount: /** @type {HTMLElement} */ (document.getElementById('selection-count')),
+  globalGitCommand: /** @type {HTMLElement} */ (document.getElementById('global-git-command')),
+  globalCopyButton: /** @type {HTMLButtonElement} */ (document.getElementById('global-copy-button')),
 };
 
 /** @type {import('jszip')} */
 let currentZip; // JSZip instance
 const basePrefix = 'archive/'; // fixed prefix
 
-function setup() {
-  els.input.addEventListener('change', (e) => {
-    const target = /** @type {HTMLInputElement} */ (e.target);
-    const file = target.files && target.files[0];
-    if (file) void handleZipFile(file);
-  });
+// Global state for selected rollbacks
+/** @type {Set<string>} */
+const selectedTestFiles = new Set();
 
-  ;['dragenter', 'dragover'].forEach((type) => {
-    els.dropzone.addEventListener(type, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      els.dropzone.classList.add('dragover');
+function setup() {
+    els.input.addEventListener('change', (e) => {
+    const target = /** @type {HTMLInputElement} */ (e.target);
+      const file = target.files && target.files[0];
+      if (file) void handleZipFile(file);
     });
-  });
-  ;['dragleave', 'drop'].forEach((type) => {
-    els.dropzone.addEventListener(type, (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      els.dropzone.classList.remove('dragover');
+
+    ;['dragenter', 'dragover'].forEach((type) => {
+      els.dropzone.addEventListener(type, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        els.dropzone.classList.add('dragover');
+      });
     });
-  });
-  els.dropzone.addEventListener('drop', (e) => {
-    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (file) void handleZipFile(file);
-  });
+    ;['dragleave', 'drop'].forEach((type) => {
+      els.dropzone.addEventListener(type, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        els.dropzone.classList.remove('dragover');
+      });
+    });
+    els.dropzone.addEventListener('drop', (e) => {
+      const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) void handleZipFile(file);
+    });
 
   // Setup modal functionality
   setupModal();
+
+  // Setup global rollback functionality
+  setupGlobalRollback();
 }
 
 function setupModal() {
@@ -113,6 +124,86 @@ function openModal(imageSrc, caption) {
 function closeModal() {
   els.modal.classList.add('hidden');
   document.body.style.overflow = ''; // Restore body scroll
+}
+
+function setupGlobalRollback() {
+  els.globalCopyButton.addEventListener('click', () => {
+    const command = els.globalGitCommand.textContent;
+    if (command && command !== 'No items selected') {
+      navigator.clipboard.writeText(command).then(() => {
+        els.globalCopyButton.textContent = 'Copied!';
+        setTimeout(() => {
+          els.globalCopyButton.textContent = 'Copy';
+        }, 2000);
+      }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = command;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        els.globalCopyButton.textContent = 'Copied!';
+        setTimeout(() => {
+          els.globalCopyButton.textContent = 'Copy';
+        }, 2000);
+      });
+    }
+  });
+}
+
+function updateGlobalRollback() {
+  const selectedFiles = Array.from(selectedTestFiles);
+  els.selectionCount.textContent = `${selectedFiles.length} selected`;
+
+  if (selectedFiles.length === 0) {
+    els.globalRollback.classList.add('hidden');
+    els.globalGitCommand.textContent = 'No items selected';
+    els.globalCopyButton.disabled = true;
+  } else {
+    els.globalRollback.classList.remove('hidden');
+    const filesString = selectedFiles.map(file => `"${file}"`).join(' ');
+    const command = `for file in ${filesString}; do git revert $(git log -n 1 --pretty=format:"%H" -- "$file"); done`;
+    els.globalGitCommand.textContent = command;
+    els.globalCopyButton.disabled = false;
+  }
+}
+
+/**
+ * @param {string} testFile
+ * @param {boolean} isSelected
+ */
+function toggleTestFileSelection(testFile, isSelected) {
+  if (isSelected) {
+    selectedTestFiles.add(testFile);
+  } else {
+    selectedTestFiles.delete(testFile);
+  }
+  updateGlobalRollback();
+}
+
+/**
+ * @param {FailureGroup} group
+ * @param {boolean} selectAll
+ */
+function toggleGroupSelection(group, selectAll) {
+  const testFiles = [...new Set(group.items.map(item => item.testFile).filter(Boolean))];
+
+  testFiles.forEach(testFile => {
+    if (selectAll) {
+      selectedTestFiles.add(testFile);
+    } else {
+      selectedTestFiles.delete(testFile);
+    }
+
+    // Update individual checkboxes
+    const checkbox = /** @type {HTMLInputElement} */ (document.getElementById(`rollback-${testFile.replace(/[^a-zA-Z0-9]/g, '_')}`));
+    if (checkbox) {
+      checkbox.checked = selectAll;
+    }
+  });
+
+  updateGlobalRollback();
 }
 
 /**
@@ -169,17 +260,19 @@ async function handleZipFile(file) {
 }
 
 function clearUI() {
-  els.summary.classList.add('hidden');
-  els.summary.textContent = '';
-  els.results.innerHTML = '';
+    els.summary.classList.add('hidden');
+    els.summary.textContent = '';
+    els.results.innerHTML = '';
+  els.globalRollback.classList.add('hidden');
+  selectedTestFiles.clear();
 }
 
 /**
  * @param {string} message
  */
 function notify(message) {
-  els.summary.classList.remove('hidden');
-  els.summary.textContent = message;
+    els.summary.classList.remove('hidden');
+    els.summary.textContent = message;
 }
 
 /**
@@ -197,40 +290,40 @@ function extractFailures(xmlDoc) {
       console.log('AAAAAAA');
       console.log(testcases);
     }
-    for (const tc of testcases) {
-      const systemErr = textContent(tc.querySelector('system-err'));
-      const failureReportLines = systemErr.split('\n').filter(l => l.includes('Autoconsent test failed on'));
-      /** @type {FailureStats[]} */
-      const failureStats = [];
-      for (const line of failureReportLines) {
-        const jsonMatch = line.match(/failure stats: (.*)/);
-        if (jsonMatch && jsonMatch[1]) {
-          try {
-            const stats = JSON.parse(jsonMatch[1]);
-            // Clean up the reason text
-            if (stats.reason) {
-              stats.reason = stats.reason.split('\n')[0].trim();
-            }
-            failureStats.push(stats);
-          } catch (e) {
-            console.warn('Failed to parse failure stats JSON:', jsonMatch[1], e);
+  for (const tc of testcases) {
+    const systemErr = textContent(tc.querySelector('system-err'));
+    const failureReportLines = systemErr.split('\n').filter(l => l.includes('Autoconsent test failed on'));
+    /** @type {FailureStats[]} */
+    const failureStats = [];
+    for (const line of failureReportLines) {
+      const jsonMatch = line.match(/failure stats: (.*)/);
+      if (jsonMatch && jsonMatch[1]) {
+        try {
+          const stats = JSON.parse(jsonMatch[1]);
+          // Clean up the reason text
+          if (stats.reason) {
+            stats.reason = stats.reason.split('\n')[0].trim();
           }
+          failureStats.push(stats);
+        } catch (e) {
+          console.warn('Failed to parse failure stats JSON:', jsonMatch[1], e);
         }
       }
-
-      /** @type {FailureItem} */
-      const item = {
-        failureStats,
-        testName: (tc.getAttribute('name') || '').replace(/^.* › /g, ''), // remove leading "testSuite › " prefix
-        testFile: tc.getAttribute('classname') || '',
-        time: tc.getAttribute('time') || '',
-        failureText: textContent(tc.querySelector('failure')),
-        systemOut: textContent(tc.querySelector('system-out')),
-        systemErr,
-        attachments: [],
-      };
-      failures.push(item);
     }
+
+    /** @type {FailureItem} */
+    const item = {
+      failureStats,
+      testName: (tc.getAttribute('name') || '').replace(/^.* › /g, ''), // remove leading "testSuite › " prefix
+      testFile: tc.getAttribute('classname') || '',
+      time: tc.getAttribute('time') || '',
+        failureText: textContent(tc.querySelector('failure')),
+      systemOut: textContent(tc.querySelector('system-out')),
+      systemErr,
+      attachments: [],
+    };
+    failures.push(item);
+  }
   }
 
   return failures;
@@ -365,12 +458,12 @@ function renderSummary(stats, failures, groups) {
  * @param {FailureGroup[]} groups
  */
 function renderGroups(groups) {
-  els.results.innerHTML = '';
+    els.results.innerHTML = '';
 
-  // sort groups by size desc
-  groups.sort((a, b) => b.items.length - a.items.length);
+    // sort groups by size desc
+    groups.sort((a, b) => b.items.length - a.items.length);
 
-  for (const group of groups) {
+      for (const group of groups) {
     // @ts-expect-error we guarantee that the template has a firstElementChild
     const g = els.groupTpl.content.firstElementChild.cloneNode(true);
     // @ts-expect-error we guarantee that the element exists
@@ -383,65 +476,44 @@ function renderGroups(groups) {
     const summaryEl = g.querySelector('summary');
     const testFiles = [...new Set(group.items.map(item => item.testFile).filter(Boolean))];
 
+    // Add group select all checkbox
     if (testFiles.length > 0) {
-      const groupGitDiv = document.createElement('div');
-      groupGitDiv.className = 'group-git-section';
+      const groupSelectDiv = document.createElement('div');
+      groupSelectDiv.className = 'group-select-all';
 
-      const groupGitLabel = document.createElement('div');
-      groupGitLabel.className = 'group-git-label';
-      groupGitLabel.textContent = 'Revert all changes in this group:';
-
-      const groupGitCodeDiv = document.createElement('div');
-      groupGitCodeDiv.className = 'group-git-code';
-
-      const filesString = testFiles.map(file => `"${file}"`).join(' ');
-      const groupGitCommand = `for file in ${filesString}; do git revert $(git log -n 1 --pretty=format:"%H" -- "$file"); done`;
-
-      const groupGitCode = document.createElement('code');
-      groupGitCode.className = 'group-git-command';
-      groupGitCode.textContent = groupGitCommand;
-
-      const groupCopyButton = document.createElement('button');
-      groupCopyButton.className = 'group-git-copy-button';
-      groupCopyButton.textContent = 'Copy';
-      groupCopyButton.addEventListener('click', (e) => {
+      const groupCheckbox = document.createElement('input');
+      groupCheckbox.type = 'checkbox';
+      groupCheckbox.className = 'group-select-checkbox';
+      groupCheckbox.addEventListener('change', (e) => {
         e.stopPropagation(); // Prevent toggling the details
-        navigator.clipboard.writeText(groupGitCommand).then(() => {
-          groupCopyButton.textContent = 'Copied!';
-          setTimeout(() => {
-            groupCopyButton.textContent = 'Copy';
-          }, 2000);
-        }).catch(() => {
-          // Fallback for older browsers
-          const textArea = document.createElement('textarea');
-          textArea.value = groupGitCommand;
-          document.body.appendChild(textArea);
-          textArea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textArea);
-          groupCopyButton.textContent = 'Copied!';
-          setTimeout(() => {
-            groupCopyButton.textContent = 'Copy';
-          }, 2000);
-        });
+        toggleGroupSelection(group, groupCheckbox.checked);
       });
 
-      groupGitCodeDiv.appendChild(groupGitCode);
-      groupGitCodeDiv.appendChild(groupCopyButton);
-      groupGitDiv.appendChild(groupGitLabel);
-      groupGitDiv.appendChild(groupGitCodeDiv);
-      summaryEl.appendChild(groupGitDiv);
+      const groupLabel = document.createElement('label');
+      groupLabel.className = 'group-select-label';
+      groupLabel.textContent = 'Select All';
+      groupLabel.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent toggling the details
+        groupCheckbox.checked = !groupCheckbox.checked;
+        toggleGroupSelection(group, groupCheckbox.checked);
+      });
+
+      groupSelectDiv.appendChild(groupCheckbox);
+      groupSelectDiv.appendChild(groupLabel);
+      summaryEl.appendChild(groupSelectDiv);
     }
+
+
 
     // @ts-expect-error we guarantee that the element exists
-    const itemsEl = g.querySelector('.items');
-    for (const item of group.items) {
-      itemsEl.appendChild(renderItem(item));
-    }
+      const itemsEl = g.querySelector('.items');
+      for (const item of group.items) {
+        itemsEl.appendChild(renderItem(item));
+      }
 
-    els.results.appendChild(g);
+      els.results.appendChild(g);
+    }
   }
-}
 
 /**
  * Helper function to render stats grid HTML
@@ -475,6 +547,30 @@ function renderItem(item) {
   el.querySelector('.test-name').textContent = item.testName;
   // @ts-expect-error we guarantee that the element exists
   el.querySelector('.meta').textContent = `${item.testFile || ''} ${item.time ? '— ' + item.time + 's' : ''}`;
+
+  // Add rollback checkbox if we have a test file
+  if (item.testFile) {
+    const headerEl = /** @type {HTMLElement} */ (el.querySelector('.item-header'));
+    const checkboxDiv = document.createElement('div');
+    checkboxDiv.className = 'rollback-checkbox';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `rollback-${item.testFile.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    checkbox.className = 'rollback-check';
+    checkbox.addEventListener('change', () => {
+      toggleTestFileSelection(item.testFile, checkbox.checked);
+    });
+
+    const label = document.createElement('label');
+    label.htmlFor = checkbox.id;
+    label.className = 'rollback-label';
+    label.textContent = 'Rollback';
+
+    checkboxDiv.appendChild(checkbox);
+    checkboxDiv.appendChild(label);
+    headerEl.appendChild(checkboxDiv);
+  }
 
   // Render failure stats
   const statsEl = /** @type {HTMLElement} */ (el.querySelector('.failure-stats'));

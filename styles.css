@@ -7,6 +7,7 @@
   --accent-2: #59d3a0;
   --danger: #ff6b6b;
   --border: #1f2430;
+  --global-rollback-height: 120px;
 }
 
 * { box-sizing: border-box; }
@@ -62,8 +63,96 @@ body {
   color: var(--muted);
 }
 
+
+
+/* Global Rollback Section Styling */
+.global-rollback {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  z-index: 200;
+  padding: 16px;
+  background: rgba(124, 154, 255, 0.08);
+  border: 1px solid rgba(124, 154, 255, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+}
+.global-rollback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.global-rollback-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--accent);
+}
+.selection-count {
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(124, 154, 255, 0.1);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+.global-rollback-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.global-git-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.global-git-code {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #0b0d12;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.global-git-command {
+  flex: 1;
+  font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  outline: none;
+  word-break: break-all;
+  line-height: 1.4;
+}
+.global-copy-button {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+.global-copy-button:hover:not(:disabled) {
+  background: #6b8fff;
+}
+.global-copy-button:disabled {
+  background: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .results {
-  padding: 6px 12px 40px;
+  padding: 6px 12px calc(var(--global-rollback-height) + 60px);
   display: block;
 }
 
@@ -128,72 +217,32 @@ body {
   font-weight: 500;
 }
 
-/* Group Git Revert Section Styling */
-.group-git-section {
-  margin-top: 8px;
-  padding: 8px;
-  background: rgba(89, 211, 160, 0.08);
-  border: 1px solid rgba(89, 211, 160, 0.3);
-  border-radius: 6px;
-  width: 100%;
-}
-.group-git-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent-2);
-  margin-bottom: 6px;
-}
-.group-git-code {
+/* Group Select All Styling */
+.group-select-all {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 6px;
-  background: #0b0d12;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  margin-top: 6px;
   padding: 6px 8px;
-  max-height: 80px;
-  overflow-y: auto;
+  background: rgba(124, 154, 255, 0.1);
+  border: 1px solid rgba(124, 154, 255, 0.2);
+  border-radius: 6px;
 }
-.group-git-code::-webkit-scrollbar {
-  width: 4px;
-}
-.group-git-code::-webkit-scrollbar-track {
-  background: transparent;
-}
-.group-git-code::-webkit-scrollbar-thumb {
-  background: rgba(89, 211, 160, 0.3);
-  border-radius: 2px;
-}
-.group-git-code::-webkit-scrollbar-thumb:hover {
-  background: rgba(89, 211, 160, 0.5);
-}
-.group-git-command {
-  flex: 1;
-  font-family: ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
-  font-size: 11px;
-  color: var(--accent-2);
-  background: transparent;
-  border: none;
-  outline: none;
-  word-break: break-all;
-  line-height: 1.3;
-}
-.group-git-copy-button {
-  background: var(--accent-2);
-  color: var(--bg);
-  border: none;
-  padding: 3px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 600;
+.group-select-checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
   cursor: pointer;
-  transition: background-color 0.2s ease;
-  flex-shrink: 0;
-  align-self: flex-start;
 }
-.group-git-copy-button:hover {
-  background: #4fc084;
+.group-select-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
 }
+
+
 
 .group .items {
   padding: 16px;
@@ -230,7 +279,16 @@ body {
   border-radius: 0 0 0 8px;
 }
 
-.item-header { margin-bottom: 16px; }
+.item-header {
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.item-header .titles {
+  flex: 1;
+}
 .item .test-name {
   font-weight: 600;
   margin-bottom: 6px;
@@ -241,6 +299,27 @@ body {
   color: var(--muted);
   font-size: 12px;
   font-family: ui-monospace, monospace;
+}
+
+/* Rollback Checkbox Styling */
+.rollback-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.rollback-check {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.rollback-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  user-select: none;
 }
 
 /* Failure Stats Styling */

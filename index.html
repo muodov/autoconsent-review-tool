@@ -23,6 +23,22 @@
     </section>
 
     <section id="summary" class="summary hidden"></section>
+
+    <!-- Global rollback section -->
+    <section id="global-rollback" class="global-rollback hidden">
+      <div class="global-rollback-header">
+        <h3>Selected Rollbacks</h3>
+        <span id="selection-count" class="selection-count">0 selected</span>
+      </div>
+      <div class="global-rollback-content">
+        <div class="global-git-label">Revert selected changes:</div>
+        <div class="global-git-code">
+          <code id="global-git-command" class="global-git-command">No items selected</code>
+          <button id="global-copy-button" class="global-copy-button" disabled>Copy</button>
+        </div>
+      </div>
+    </section>
+
     <section id="results" class="results"></section>
 
     <!-- Screenshot zoom modal -->
@@ -48,8 +64,10 @@
     <template id="item-template">
       <article class="item">
         <div class="item-header">
-          <div class="test-name"></div>
-          <div class="meta"></div>
+          <div class="titles">
+            <div class="test-name"></div>
+            <div class="meta"></div>
+          </div>
         </div>
         <div class="failure-stats"></div>
         <div class="screenshots"></div>
