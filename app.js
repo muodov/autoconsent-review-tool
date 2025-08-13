@@ -165,7 +165,7 @@ function updateGlobalRollback() {
   } else {
     els.globalRollback.classList.remove('hidden');
     const filesString = selectedFiles.map(file => `"${file}"`).join(' ');
-    const command = `for file in ${filesString}; do git revert $(git log -n 1 --pretty=format:"%H" -- "$file"); done`;
+    const command = `for file in ${filesString}; do git revert --no-edit $(git log -n 1 --pretty=format:"%H" -- "$file"); done`;
     els.globalGitCommand.textContent = command;
     els.globalCopyButton.disabled = false;
   }
@@ -464,7 +464,7 @@ function extractFailures(xmlDoc) {
     const item = {
       failureStats,
       testName: (tc.getAttribute('name') || '').replace(/^.* › /g, ''), // remove leading "testSuite › " prefix
-      testFile: tc.getAttribute('classname') || '',
+      testFile: tc.getAttribute('classname') ? 'tests/' + tc.getAttribute('classname') : '',
       time: tc.getAttribute('time') || '',
         failureText: textContent(tc.querySelector('failure')),
       systemOut: textContent(tc.querySelector('system-out')),
@@ -909,7 +909,7 @@ function renderItem(item) {
     const gitCodeDiv = document.createElement('div');
     gitCodeDiv.className = 'git-revert-code';
 
-    const gitCommand = `git revert $(git log -n 1 --pretty=format:"%H" -- ${item.testFile})`;
+    const gitCommand = `git revert --no-edit $(git log -n 1 --pretty=format:"%H" -- ${item.testFile})`;
     const gitCode = document.createElement('code');
     gitCode.className = 'git-command';
     gitCode.textContent = gitCommand;
