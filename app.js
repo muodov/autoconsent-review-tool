@@ -344,6 +344,7 @@ function computeReason(f) {
  */
 function renderSummary(stats, failures, groups) {
   const failed = failures.filter(isFailure).length;
+  const succeeded = failures.filter(f => !isFailure(f)).length;
   let timeStr = '';
   if (stats.totalTime) {
     const totalSeconds = Math.floor(stats.totalTime);
@@ -357,7 +358,7 @@ function renderSummary(stats, failures, groups) {
     timeStr = ` — Time: ${parts.join(' ')}`;
   }
   els.summary.classList.remove('hidden');
-  els.summary.innerHTML = `Test suites: <span class="badge">${stats.testSuiteCount}</span> — Total tests: <span class="badge">${stats.totalTests}</span> — Failures: <span class="badge danger">${failed}</span> — Groups: <span class="badge">${groups.length}</span>${timeStr}`;
+  els.summary.innerHTML = `Test suites: <span class="badge">${stats.testSuiteCount}</span> — Total tests: <span class="badge">${stats.totalTests}</span> — Successes: <span class="badge">${succeeded}</span> — Failures: <span class="badge danger">${failed}</span> — Groups: <span class="badge">${groups.length}</span>${timeStr}`;
 }
 
 /**

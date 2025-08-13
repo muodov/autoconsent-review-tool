@@ -151,6 +151,21 @@ body {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 6px 8px;
+  max-height: 80px;
+  overflow-y: auto;
+}
+.group-git-code::-webkit-scrollbar {
+  width: 4px;
+}
+.group-git-code::-webkit-scrollbar-track {
+  background: transparent;
+}
+.group-git-code::-webkit-scrollbar-thumb {
+  background: rgba(89, 211, 160, 0.3);
+  border-radius: 2px;
+}
+.group-git-code::-webkit-scrollbar-thumb:hover {
+  background: rgba(89, 211, 160, 0.5);
 }
 .group-git-command {
   flex: 1;
