@@ -339,11 +339,35 @@ body {
   opacity: 0.9;
 }
 
-/* Hide detailed content when collapsed */
-.item.collapsed .failure-stats,
-.item.collapsed .screenshots,
-.item.collapsed .git-revert-section {
+/* Temporarily expanded collapsed item */
+.item.collapsed.expanded {
+  max-height: none;
+  overflow: visible;
+  opacity: 0.95;
+}
+
+/* Hide detailed content when collapsed (but not when expanded) */
+.item.collapsed:not(.expanded) .failure-stats,
+.item.collapsed:not(.expanded) .screenshots,
+.item.collapsed:not(.expanded) .git-revert-section {
   display: none;
+}
+
+/* Visual cue for clickable collapsed items */
+.item.collapsed .item-header {
+  position: relative;
+}
+
+.item.collapsed .item-header::before {
+  content: '👁 ';
+  font-size: 14px;
+  opacity: 0.6;
+  pointer-events: none;
+  margin-right: 6px;
+}
+
+.item.collapsed.expanded .item-header::before {
+  content: '🔽 ';
 }
 
 /* State-specific accent colors */

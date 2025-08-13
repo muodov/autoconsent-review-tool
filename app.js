@@ -218,12 +218,19 @@ function updateItemState(testFile) {
   if (rollbackCheckbox) rollbackCheckbox.checked = isSelected;
   if (reviewedCheckbox) reviewedCheckbox.checked = isReviewed;
 
-  // Update item collapse state
-  const itemElement = rollbackCheckbox?.closest('.item');
+    // Update item collapse state
+  const itemElement = /** @type {HTMLElement} */ (rollbackCheckbox?.closest('.item'));
   if (itemElement) {
     itemElement.classList.toggle('collapsed', isProcessed);
     itemElement.classList.toggle('reviewed', isReviewed);
     itemElement.classList.toggle('rollback', isSelected);
+
+    // Add expand functionality to collapsed items
+    if (isProcessed) {
+      setupItemExpansion(itemElement);
+    } else {
+      removeItemExpansion(itemElement);
+    }
   }
 
   // Update group button states
@@ -269,9 +276,9 @@ function updateGroupButtonStates(groupElement) {
   });
 
   // Update button checkboxes
-  const rollbackCheckbox = groupElement.querySelector('.group-rollback-checkbox');
-  const keepCheckbox = groupElement.querySelector('.group-keep-checkbox');
-  const deselectCheckbox = groupElement.querySelector('.group-deselect-checkbox');
+  const rollbackCheckbox = /** @type {HTMLInputElement} */ (groupElement.querySelector('.group-rollback-checkbox'));
+  const keepCheckbox = /** @type {HTMLInputElement} */ (groupElement.querySelector('.group-keep-checkbox'));
+  const deselectCheckbox = /** @type {HTMLInputElement} */ (groupElement.querySelector('.group-deselect-checkbox'));
 
   const totalCount = itemCheckboxes.length;
   const unprocessedCount = totalCount - rollbackCount - reviewedCount;
@@ -1007,6 +1014,48 @@ async function loadBlobUrl(path) {
     console.warn('Failed to load', path, e);
     return '';
   }
+}
+
+/**
+ * @param {HTMLElement} itemElement
+ */
+function setupItemExpansion(itemElement) {
+  // Remove any existing expand handler
+  removeItemExpansion(itemElement);
+
+  // Add click handler to the item header for expansion
+  const itemHeader = /** @type {HTMLElement} */ (itemElement.querySelector('.item-header'));
+  if (itemHeader) {
+    /** @param {Event} e */
+    const expandHandler = (e) => {
+      // Don't trigger if clicking on checkboxes
+      if (/** @type {Element} */ (e.target).closest('.item-checkboxes')) {
+        return;
+      }
+      e.stopPropagation();
+      itemElement.classList.toggle('expanded');
+    };
+
+    itemHeader.addEventListener('click', expandHandler);
+    itemHeader.style.cursor = 'pointer';
+
+    // Store the handler so we can remove it later
+    /** @type {any} */ (itemElement)._expandHandler = expandHandler;
+  }
+}
+
+/**
+ * @param {HTMLElement} itemElement
+ */
+function removeItemExpansion(itemElement) {
+  const itemHeader = /** @type {HTMLElement} */ (itemElement.querySelector('.item-header'));
+  if (itemHeader && /** @type {any} */ (itemElement)._expandHandler) {
+    itemHeader.removeEventListener('click', /** @type {any} */ (itemElement)._expandHandler);
+    itemHeader.style.cursor = '';
+    delete /** @type {any} */ (itemElement)._expandHandler;
+  }
+  // Remove expanded state when item is no longer collapsed
+  itemElement.classList.remove('expanded');
 }
 
 // init
