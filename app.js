@@ -58,9 +58,11 @@ const els = {
 let currentZip; // JSZip instance
 const basePrefix = 'archive/'; // fixed prefix
 
-// Global state for selected rollbacks
+// Global state for selected rollbacks and reviewed items
 /** @type {Set<string>} */
 const selectedTestFiles = new Set();
+/** @type {Set<string>} */
+const reviewedTestFiles = new Set();
 
 function setup() {
     els.input.addEventListener('change', (e) => {
@@ -176,10 +178,53 @@ function updateGlobalRollback() {
 function toggleTestFileSelection(testFile, isSelected) {
   if (isSelected) {
     selectedTestFiles.add(testFile);
+    // If marking for rollback, remove from reviewed
+    reviewedTestFiles.delete(testFile);
   } else {
     selectedTestFiles.delete(testFile);
   }
+  updateItemState(testFile);
   updateGlobalRollback();
+}
+
+/**
+ * @param {string} testFile
+ * @param {boolean} isReviewed
+ */
+function toggleTestFileReviewed(testFile, isReviewed) {
+  if (isReviewed) {
+    reviewedTestFiles.add(testFile);
+    // If marking as reviewed, remove from rollback
+    selectedTestFiles.delete(testFile);
+  } else {
+    reviewedTestFiles.delete(testFile);
+  }
+  updateItemState(testFile);
+  updateGlobalRollback();
+}
+
+/**
+ * @param {string} testFile
+ */
+function updateItemState(testFile) {
+  const isSelected = selectedTestFiles.has(testFile);
+  const isReviewed = reviewedTestFiles.has(testFile);
+  const isProcessed = isSelected || isReviewed;
+
+  // Update checkboxes
+  const rollbackCheckbox = /** @type {HTMLInputElement} */ (document.getElementById(`rollback-${testFile.replace(/[^a-zA-Z0-9]/g, '_')}`));
+  const reviewedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById(`reviewed-${testFile.replace(/[^a-zA-Z0-9]/g, '_')}`));
+
+  if (rollbackCheckbox) rollbackCheckbox.checked = isSelected;
+  if (reviewedCheckbox) reviewedCheckbox.checked = isReviewed;
+
+  // Update item collapse state
+  const itemElement = rollbackCheckbox?.closest('.item');
+  if (itemElement) {
+    itemElement.classList.toggle('collapsed', isProcessed);
+    itemElement.classList.toggle('reviewed', isReviewed);
+    itemElement.classList.toggle('rollback', isSelected);
+  }
 }
 
 /**
@@ -192,15 +237,14 @@ function toggleGroupSelection(group, selectAll) {
   testFiles.forEach(testFile => {
     if (selectAll) {
       selectedTestFiles.add(testFile);
+      // Remove from reviewed when selecting for rollback
+      reviewedTestFiles.delete(testFile);
     } else {
       selectedTestFiles.delete(testFile);
     }
 
-    // Update individual checkboxes
-    const checkbox = /** @type {HTMLInputElement} */ (document.getElementById(`rollback-${testFile.replace(/[^a-zA-Z0-9]/g, '_')}`));
-    if (checkbox) {
-      checkbox.checked = selectAll;
-    }
+    // Update individual checkboxes and item state
+    updateItemState(testFile);
   });
 
   updateGlobalRollback();
@@ -265,6 +309,7 @@ function clearUI() {
     els.results.innerHTML = '';
   els.globalRollback.classList.add('hidden');
   selectedTestFiles.clear();
+  reviewedTestFiles.clear();
 }
 
 /**
@@ -463,13 +508,13 @@ function renderGroups(groups) {
     // sort groups by size desc
     groups.sort((a, b) => b.items.length - a.items.length);
 
-      for (const group of groups) {
+    for (const group of groups) {
     // @ts-expect-error we guarantee that the template has a firstElementChild
-    const g = els.groupTpl.content.firstElementChild.cloneNode(true);
+      const g = els.groupTpl.content.firstElementChild.cloneNode(true);
     // @ts-expect-error we guarantee that the element exists
-    g.querySelector('.reason').textContent = group.reason;
+      g.querySelector('.reason').textContent = group.reason;
     // @ts-expect-error we guarantee that the element exists
-    g.querySelector('.count').textContent = `(${group.items.length})`;
+      g.querySelector('.count').textContent = `(${group.items.length})`;
 
     // Add group git revert command
     // @ts-expect-error we guarantee that the element exists
@@ -548,28 +593,55 @@ function renderItem(item) {
   // @ts-expect-error we guarantee that the element exists
   el.querySelector('.meta').textContent = `${item.testFile || ''} ${item.time ? '— ' + item.time + 's' : ''}`;
 
-  // Add rollback checkbox if we have a test file
+  // Add rollback and reviewed checkboxes if we have a test file
   if (item.testFile) {
     const headerEl = /** @type {HTMLElement} */ (el.querySelector('.item-header'));
-    const checkboxDiv = document.createElement('div');
-    checkboxDiv.className = 'rollback-checkbox';
+    const checkboxesDiv = document.createElement('div');
+    checkboxesDiv.className = 'item-checkboxes';
 
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = `rollback-${item.testFile.replace(/[^a-zA-Z0-9]/g, '_')}`;
-    checkbox.className = 'rollback-check';
-    checkbox.addEventListener('change', () => {
-      toggleTestFileSelection(item.testFile, checkbox.checked);
+    // Rollback checkbox
+    const rollbackDiv = document.createElement('div');
+    rollbackDiv.className = 'rollback-checkbox';
+
+    const rollbackCheckbox = document.createElement('input');
+    rollbackCheckbox.type = 'checkbox';
+    rollbackCheckbox.id = `rollback-${item.testFile.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    rollbackCheckbox.className = 'rollback-check';
+    rollbackCheckbox.addEventListener('change', () => {
+      toggleTestFileSelection(item.testFile, rollbackCheckbox.checked);
     });
 
-    const label = document.createElement('label');
-    label.htmlFor = checkbox.id;
-    label.className = 'rollback-label';
-    label.textContent = 'Rollback';
+    const rollbackLabel = document.createElement('label');
+    rollbackLabel.htmlFor = rollbackCheckbox.id;
+    rollbackLabel.className = 'rollback-label';
+    rollbackLabel.textContent = 'Rollback';
 
-    checkboxDiv.appendChild(checkbox);
-    checkboxDiv.appendChild(label);
-    headerEl.appendChild(checkboxDiv);
+    rollbackDiv.appendChild(rollbackCheckbox);
+    rollbackDiv.appendChild(rollbackLabel);
+
+    // Reviewed checkbox
+    const reviewedDiv = document.createElement('div');
+    reviewedDiv.className = 'reviewed-checkbox';
+
+    const reviewedCheckbox = document.createElement('input');
+    reviewedCheckbox.type = 'checkbox';
+    reviewedCheckbox.id = `reviewed-${item.testFile.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    reviewedCheckbox.className = 'reviewed-check';
+    reviewedCheckbox.addEventListener('change', () => {
+      toggleTestFileReviewed(item.testFile, reviewedCheckbox.checked);
+    });
+
+    const reviewedLabel = document.createElement('label');
+    reviewedLabel.htmlFor = reviewedCheckbox.id;
+    reviewedLabel.className = 'reviewed-label';
+    reviewedLabel.textContent = 'Reviewed';
+
+    reviewedDiv.appendChild(reviewedCheckbox);
+    reviewedDiv.appendChild(reviewedLabel);
+
+    checkboxesDiv.appendChild(reviewedDiv);
+    checkboxesDiv.appendChild(rollbackDiv);
+    headerEl.appendChild(checkboxesDiv);
   }
 
   // Render failure stats
