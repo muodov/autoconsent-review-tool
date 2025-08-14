@@ -289,6 +289,208 @@ body {
   accent-color: white;
 }
 
+/* Group State Visual Indicators */
+.group.fully-reviewed {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 1px rgba(89, 211, 160, 0.3);
+}
+
+.group.fully-reviewed > summary {
+  background: linear-gradient(135deg, rgba(89, 211, 160, 0.1) 0%, rgba(89, 211, 160, 0.05) 100%);
+  border-left: 4px solid var(--accent-2);
+}
+
+.group.fully-reviewed > summary::before {
+  color: var(--accent-2);
+}
+
+.group.fully-reviewed .reason {
+  color: var(--accent-2);
+}
+
+.group.fully-rollback {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(124, 154, 255, 0.3);
+}
+
+.group.fully-rollback > summary {
+  background: linear-gradient(135deg, rgba(124, 154, 255, 0.1) 0%, rgba(124, 154, 255, 0.05) 100%);
+  border-left: 4px solid var(--accent);
+}
+
+.group.fully-rollback > summary::before {
+  color: var(--accent);
+}
+
+.group.fully-rollback .reason {
+  color: var(--accent);
+}
+
+.group.mixed-state {
+  border-color: #ff9500;
+  box-shadow: 0 0 0 1px rgba(255, 149, 0, 0.3);
+}
+
+.group.mixed-state > summary {
+  background: linear-gradient(135deg, rgba(255, 149, 0, 0.1) 0%, rgba(255, 149, 0, 0.05) 100%);
+  border-left: 4px solid #ff9500;
+}
+
+.group.mixed-state > summary::before {
+  color: #ff9500;
+}
+
+.group.mixed-state .reason {
+  color: #ff9500;
+}
+
+/* Add completion indicator to group summary */
+.group.fully-reviewed > summary::after,
+.group.fully-rollback > summary::after,
+.group.mixed-state > summary::after {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.group.fully-reviewed > summary::after {
+  background: var(--accent-2);
+  box-shadow: 0 0 8px rgba(89, 211, 160, 0.4);
+}
+
+.group.fully-rollback > summary::after {
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(124, 154, 255, 0.4);
+}
+
+.group.mixed-state > summary::after {
+  background: #ff9500;
+  box-shadow: 0 0 8px rgba(255, 149, 0, 0.4);
+}
+
+/* Groups with unmarked items - needs attention */
+.group.partially-processed {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.2);
+  animation: pulse-attention 3s ease-in-out infinite;
+}
+
+.group.partially-processed > summary {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.08) 0%, rgba(255, 107, 107, 0.03) 100%);
+  border-left: 4px solid var(--danger);
+}
+
+.group.partially-processed > summary::before {
+  color: var(--danger);
+}
+
+.group.partially-processed .reason {
+  color: var(--danger);
+}
+
+.group.partially-processed > summary::after {
+  background: var(--danger);
+  box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Progress indicator for groups */
+.group-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.progress-text {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.group.partially-processed .group-progress {
+  color: var(--danger);
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.group.fully-reviewed .group-progress {
+  color: var(--accent-2);
+  background: rgba(89, 211, 160, 0.1);
+}
+
+.group.fully-rollback .group-progress {
+  color: var(--accent);
+  background: rgba(124, 154, 255, 0.1);
+}
+
+.group.mixed-state .group-progress {
+  color: #ff9500;
+  background: rgba(255, 149, 0, 0.1);
+}
+
+/* Progress bar within the indicator */
+.progress-bar {
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: currentColor;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.group.partially-processed .progress-fill {
+  background: var(--danger);
+}
+
+.group.fully-reviewed .progress-fill {
+  background: var(--accent-2);
+}
+
+.group.fully-rollback .progress-fill {
+  background: var(--accent);
+}
+
+.group.mixed-state .progress-fill {
+  background: #ff9500;
+}
+
+/* Subtle animations for attention */
+@keyframes pulse-attention {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(255, 107, 107, 0.4);
+  }
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(255, 107, 107, 0.6);
+  }
+}
+
 
 
 .group .items {

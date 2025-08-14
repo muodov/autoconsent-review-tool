@@ -297,9 +297,93 @@ function updateGroupButtonStates(groupElement) {
     deselectCheckbox.checked = unprocessedCount === totalCount;
     deselectCheckbox.indeterminate = unprocessedCount > 0 && unprocessedCount < totalCount;
   }
+
+  // Update group visual state based on item states
+  updateGroupVisualState(groupElement, rollbackCount, reviewedCount, totalCount);
 }
 
+/**
+ * Update visual state classes on group element based on item states
+ * @param {Element} groupElement
+ * @param {number} rollbackCount
+ * @param {number} reviewedCount
+ * @param {number} totalCount
+ */
+function updateGroupVisualState(groupElement, rollbackCount, reviewedCount, totalCount) {
+  // Remove all state classes first
+  groupElement.classList.remove('fully-reviewed', 'fully-rollback', 'mixed-state', 'partially-processed');
 
+  const processedCount = rollbackCount + reviewedCount;
+  const unprocessedCount = totalCount - processedCount;
+
+  // Apply appropriate state class
+  if (rollbackCount === totalCount && rollbackCount > 0) {
+    // All items are marked for rollback
+    groupElement.classList.add('fully-rollback');
+  } else if (reviewedCount === totalCount && reviewedCount > 0) {
+    // All items are marked as reviewed/kept
+    groupElement.classList.add('fully-reviewed');
+  } else if (processedCount === totalCount && rollbackCount > 0 && reviewedCount > 0) {
+    // All items are processed but mixed between rollback and reviewed
+    groupElement.classList.add('mixed-state');
+  } else if (processedCount > 0 && unprocessedCount > 0) {
+    // Some items are processed but some remain unprocessed - needs attention!
+    groupElement.classList.add('partially-processed');
+  }
+  // If no items are processed, no state class is applied (default unprocessed state)
+
+  // Update or create progress indicator
+  updateGroupProgressIndicator(groupElement, processedCount, totalCount);
+}
+
+/**
+ * Update or create progress indicator for a group
+ * @param {Element} groupElement
+ * @param {number} processedCount
+ * @param {number} totalCount
+ */
+function updateGroupProgressIndicator(groupElement, processedCount, totalCount) {
+  const summaryEl = groupElement.querySelector('summary');
+  if (!summaryEl) return;
+
+  // Find existing progress indicator or create new one
+  let progressEl = summaryEl.querySelector('.group-progress');
+
+  if (!progressEl) {
+    progressEl = document.createElement('div');
+    progressEl.className = 'group-progress';
+
+    // Insert before the count badge
+    const countEl = summaryEl.querySelector('.count');
+    if (countEl) {
+      summaryEl.insertBefore(progressEl, countEl);
+    } else {
+      summaryEl.appendChild(progressEl);
+    }
+  }
+
+  // Calculate progress percentage
+  const progressPercent = totalCount > 0 ? (processedCount / totalCount) * 100 : 0;
+
+  // Create progress text and bar
+  const progressText = `${processedCount}/${totalCount}`;
+  const progressBar = `
+    <span class="progress-text">${progressText}</span>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: ${progressPercent}%"></div>
+    </div>
+  `;
+
+  progressEl.innerHTML = progressBar;
+
+  // Show/hide based on whether there are any items
+  const progressElHtml = /** @type {HTMLElement} */ (progressEl);
+  if (totalCount === 0) {
+    progressElHtml.style.display = 'none';
+  } else {
+    progressElHtml.style.display = 'flex';
+  }
+}
 
 /**
  * @param {FailureGroup} group
@@ -702,6 +786,9 @@ function renderGroups(groups) {
       }
 
       els.results.appendChild(g);
+
+      // Initialize group state and progress indicator
+      updateGroupButtonStates(/** @type {Element} */ (g));
     }
   }
 
